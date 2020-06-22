@@ -1,0 +1,14 @@
+import requests
+
+url = "https://www.fast2sms.com/dev/bulk"
+
+querystring = {"authorization":"LR4cxq0SQVA8f6kvrgpuMFO7lnzHGY9TyJIhjtbe2CPUwB5XamJ5B74lgXOShxtIn6FMNVH2TZrAR8PL","sender_id":"FSTSMS","message":"humidity range:  
+temperature range:  ","language":"english","route":"p","numbers":"9490678933,9398659128,9381274122,9676926774"}
+
+headers = {
+    'cache-control': "no-cache"
+}
+
+response = requests.request("GET", url, headers=headers, params=querystring)
+
+print(response.text)
