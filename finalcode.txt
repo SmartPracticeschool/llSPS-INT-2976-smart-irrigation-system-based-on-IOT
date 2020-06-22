@@ -1,0 +1,94 @@
+import time
+import sys
+import ibmiotf.application
+import ibmiotf.device
+import random
+import requests, json 
+#Provide your IBM Watson Device Credentials
+organization = "5k0wq9"
+deviceType = "Raspberrypie"
+deviceId = "234567"
+authMethod = "token"
+authToken = "9490678933"
+
+url = "https://www.fast2sms.com/dev/bulk"
+ 
+api_key = "ff0e163351ced87f0f50b75a53c45020"
+
+base_url = "http://api.openweathermap.org/data/2.5/weather?"
+
+city_name = input("Enter city name : ") 
+
+
+complete_url = base_url + "appid=" + api_key + "&q=" + city_name 
+
+
+response = requests.get(complete_url) 
+
+
+x = response.json()
+
+
+
+if x["cod"] != "404":
+    # Initialize GPIO
+    def myCommandCallback(cmd):
+        #print("Command received: %s" % cmd.data)#for commands
+        if cmd.data:
+            print(" Temperature (in kelvin unit) = " + str(current_temperature)
+                      +"\natmospheric pressure (in hPa unit) = " + str(current_pressure)
+                      +" \nhumidity (in percentage) = " + str(current_humidiy)
+                      +"\n description = " +str(weather_description))
+        
+    try:
+        deviceOptions = {"org": organization, "type": deviceType, "id": deviceId, "auth-method": authMethod, "auth-token": authToken}
+        deviceCli = ibmiotf.device.Client(deviceOptions)#create client
+        #.............................................
+
+    except Exception as e:
+        print("Caught exception connecting device: %s" % str(e))
+        sys.exit()
+
+    # Connect and send a datapoint "hello" with value "world" into the cloud as an event of type "greeting" 10 times
+    deviceCli.connect()#connect client to platform
+
+
+
+    while True:
+        
+        y = x['main']
+        current_temperature = y["temp"]
+        current_pressure = y["pressure"]
+        current_humidiy = y["humidity"]
+        z = x["weather"]
+        weather_description = z[0]["description"]
+        #Send Temperature & Humidity to IBM Watson
+        data = { 'Temperature' : current_temperature , 'Humidity': current_humidiy , 'Pressure': current_pressure ,'Description' : weather_description}
+        #print (data)
+        def myOnPublishCallback():
+            print(" Temperature (in kelvin unit) = " + str(current_temperature) + "atmospheric pressure (in hPa unit) = " + str(current_pressure) +" humidity (in percentage) = " + str(current_humidiy) +" description = " +str(weather_description))
+
+        success = deviceCli.publishEvent("DHT11", "json", data, qos=0, on_publish=myOnPublishCallback)
+        querystring = {"authorization":"LR4cxq0SQVA8f6kvrgpuMFO7lnzHGY9TyJIhjtbe2CPUwB5XamJ5B74lgXOShxtIn6FMNVH2TZrAR8PL","sender_id":"FSTSMS","message":"Temperature:"+ str(current_temperature)+ "Humidity:"+ str(current_humidiy) +"Pressure:" + str(current_pressure)+ "Description:" +str(weather_description),"language":"english","route":"p","numbers":"9490678933,9398659128,9381274122,9676926774"}
+        headers = {
+            'cache-control': "no-cache"
+            }
+        response = requests.request("GET", url, headers=headers, params=querystring)
+        print(response.text)
+        
+        if not success:
+            print("Not connected to IoTF")
+        time.sleep(2)
+        
+        deviceCli.commandCallback = myCommandCallback
+        time.sleep(21600)
+
+
+    # Disconnect the device and application from the cloud
+    deviceCli.disconnect()
+        
+	
+
+else: 
+	print(" City Not Found ") 
+
